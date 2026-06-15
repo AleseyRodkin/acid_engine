@@ -1,3 +1,6 @@
+# Copyright (c) 2025 Alexey Rodkin. All rights reserved.
+# Licensed under the Apache License, Version 2.0.
+
 # Полный цикл: CSV → контракт → валидация → отчёт
 from acid_engine.csv_loader import load_csv
 

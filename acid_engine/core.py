@@ -1,3 +1,6 @@
+# Copyright (c) 2025 Alexey Rodkin. All rights reserved.
+# Licensed under the Apache License, Version 2.0.
+
 import re
 import copy
 from typing import Optional, List, Any, Callable, Union, Tuple

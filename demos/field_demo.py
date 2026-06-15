@@ -1,3 +1,6 @@
+# Copyright (c) 2025 Alexey Rodkin. All rights reserved.
+# Licensed under the Apache License, Version 2.0.
+
 # Демонстрация Field Contracts
 from acid_engine.core import Field, Contract, ContractViolation
 

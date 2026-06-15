@@ -1,3 +1,6 @@
+# Copyright (c) 2025 Alexey Rodkin. All rights reserved.
+# Licensed under the Apache License, Version 2.0.
+
 # Демонстрация политик QualityGate v2
 from acid_engine.core import Contract, QualityGate, QualityGateExceeded, ErrorRecord
 

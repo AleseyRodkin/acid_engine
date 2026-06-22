@@ -1,5 +1,4 @@
-""" Smoke-тесты для AcidEngine v1.0 """
-
+import pytest
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -9,140 +8,121 @@ from acid_engine.core import (
 )
 from acid_engine.ai import AIGuard
 
-PASSED = 0
-FAILED = 0
-
-def check(name: str, condition: bool, detail: str = ""):
-    global PASSED, FAILED
-    if condition:
-        PASSED += 1
-        print(f"  ✅ {name}")
-    else:
-        FAILED += 1
-        print(f"  ❌ {name}  {detail}")
-
 # ---------- Field ----------
-print("=== Field Tests ===")
-f = Field(type=int, min=1, max=100)
-try:
-    f.validate(50)
-    check("valid value", True)
-except Exception as e:
-    check("valid value", False, str(e))
+def test_field_valid():
+    f = Field(type=int, min=1, max=100)
+    f.validate(50)  # не должно вызывать исключений
 
-try:
-    f.validate(0)
-    check("below min raises", False, "should raise")
-except ContractViolation:
-    check("below min raises", True)
+def test_field_below_min():
+    f = Field(type=int, min=1, max=100)
+    with pytest.raises(ContractViolation):
+        f.validate(0)
 
-try:
-    f.validate(150)
-    check("above max raises", False, "should raise")
-except ContractViolation:
-    check("above max raises", True)
+def test_field_above_max():
+    f = Field(type=int, min=1, max=100)
+    with pytest.raises(ContractViolation):
+        f.validate(150)
 
-email_field = Field.Email()
-check("email valid", email_field.validate("a@b.com") is None)
-try:
-    email_field.validate("bad")
-    check("email invalid raises", False, "should raise")
-except ContractViolation:
-    check("email invalid raises", True)
+def test_field_email_valid():
+    f = Field.Email()
+    f.validate("a@b.com")
+
+def test_field_email_invalid():
+    f = Field.Email()
+    with pytest.raises(ContractViolation):
+        f.validate("bad")
 
 # ---------- Container + Contract ----------
-print("\n=== Container Tests ===")
-c = Contract(unique=True, schema={"id": Field(type=int, min=1)})
-container = c.create_container()
-container.add({"id": 1})
-check("add first", len(container) == 1)
-try:
+def test_container_add_and_duplicate():
+    c = Contract(unique=True, schema={"id": Field(type=int, min=1)})
+    container = c.create_container()
     container.add({"id": 1})
-    check("duplicate raises", False, "should raise")
-except ContractViolation:
-    check("duplicate raises", True)
+    assert len(container) == 1
+    with pytest.raises(ContractViolation):
+        container.add({"id": 1})
 
-container.freeze()
-try:
-    container.add({"id": 2})
-    check("frozen raises", False, "should raise")
-except ContractViolation:
-    check("frozen raises", True)
+def test_container_frozen():
+    c = Contract(unique=True, schema={"id": Field(type=int, min=1)})
+    container = c.create_container()
+    container.add({"id": 1})
+    container.freeze()
+    with pytest.raises(ContractViolation):
+        container.add({"id": 2})
 
 # ---------- Cross‑Field Rules ----------
-print("\n=== Cross‑Field Tests ===")
-c2 = Contract(schema={"a": Field(type=int), "b": Field(type=int)})
-c2.add_rule("a < b")
-container2 = c2.create_container()
-container2.add({"a": 1, "b": 2})
-check("cross‑field valid", len(container2) == 1)
-try:
-    container2.add({"a": 3, "b": 2})
-    check("cross‑field invalid raises", False, "should raise")
-except ContractViolation:
-    check("cross‑field invalid raises", True)
+def test_crossfield_valid():
+    c = Contract(schema={"a": Field(type=int), "b": Field(type=int)})
+    c.add_rule("a < b")
+    container = c.create_container()
+    container.add({"a": 1, "b": 2})
+    assert len(container) == 1
+
+def test_crossfield_invalid():
+    c = Contract(schema={"a": Field(type=int), "b": Field(type=int)})
+    c.add_rule("a < b")
+    container = c.create_container()
+    with pytest.raises(ContractViolation):
+        container.add({"a": 3, "b": 2})
 
 # ---------- QualityGate ----------
-print("\n=== QualityGate Tests ===")
-c3 = Contract(schema={"x": Field(type=int, min=0)})
-main = c3.create_container()
-gate = QualityGate(main, max_error_rate=0.5, mode="strict")
-gate.add({"x": 1})
-gate.add({"x": 2})
-try:
-    gate.add({"x": -1})
-    check("gate error", len(gate.error_records) == 1 if gate.collect_errors else True)
-except QualityGateExceeded:
-    check("strict rollback on threshold", len(main) == 2)
+def test_qualitygate_strict():
+    c = Contract(schema={"x": Field(type=int, min=0)})
+    main = c.create_container()
+    # сначала добавляем два хороших элемента
+    main.add({"x": 1})
+    main.add({"x": 2})
+    # создаём QualityGate с порогом 0.3 — теперь снапшот содержит два элемента
+    gate = QualityGate(main, max_error_rate=0.3, mode="strict")
+    # добавляем плохой элемент — порог превышен (1/3 ≈ 33% > 30%), срабатывает откат
+    with pytest.raises(QualityGateExceeded):
+        gate.add({"x": -1})
+    # после отката контейнер должен вернуться к состоянию снапшота (два элемента)
+    assert len(main) == 2
 
 # ---------- Explain Engine ----------
-print("\n=== Explain Engine Tests ===")
-c4 = Contract(schema={"email": Field.Email()})
-result = c4.validate([
-    {"email": "ok@b.com"},
-    {"email": "bad"}
-])
-check("explain has total", result.summary.get("total") == 2)
-check("explain has errors", result.summary.get("errors") == 1)
-output = result.explain()
-check("explain string", "Ошибок: 1" in output or "Errors: 1" in output or "errors" in output.lower())
+def test_explain_engine():
+    c = Contract(schema={"email": Field.Email()})
+    result = c.validate([
+        {"email": "ok@b.com"},
+        {"email": "bad"}
+    ])
+    assert result.summary["total"] == 2
+    assert result.summary["errors"] == 1
+    output = result.explain()
+    assert "Ошибок: 1" in output or "Errors: 1" in output or "errors" in output.lower()
 
 # ---------- YAML ----------
-print("\n=== YAML Tests ===")
-c5 = Contract(schema={"val": Field(type=int, min=5)})
-yaml_str = c5.to_yaml()
-c5_loaded = Contract.from_yaml(yaml_str)
-check("YAML roundtrip schema", "val" in (c5_loaded.schema or {}))
-check("YAML roundtrip min", c5_loaded.schema["val"].min == 5)
+def test_yaml_roundtrip():
+    c = Contract(schema={"val": Field(type=int, min=5)})
+    yaml_str = c.to_yaml()
+    c_loaded = Contract.from_yaml(yaml_str)
+    assert "val" in c_loaded.schema
+    assert c_loaded.schema["val"].min == 5
 
 # ---------- Pipeline Generator ----------
-print("\n=== Pipeline Generator Tests ===")
-c6 = Contract(
-    schema={"id": Field(type=int)},
-    pipeline_meta={
-        "input": "test.csv",
-        "output": "out.csv",
-        "processing": ["load", "clean"]
-    }
-)
-code = c6.generate_pipeline()
-check("pipeline has load", "def load" in code)
-check("pipeline has clean", "def clean" in code)
-check("pipeline has orchestrator", "@orchestrator" in code)
+def test_pipeline_generator():
+    c = Contract(
+        schema={"id": Field(type=int)},
+        pipeline_meta={
+            "input": "test.csv",
+            "output": "out.csv",
+            "processing": ["load", "clean"]
+        }
+    )
+    code = c.generate_pipeline()
+    assert "def load" in code
+    assert "def clean" in code
+    assert "@orchestrator" in code
 
 # ---------- AI Guard ----------
-print("\n=== AI Guard Tests ===")
-ai_contract = Contract(schema={"answer": Field(type=str, min_length=1)})
-guard = AIGuard(ai_contract)
-res_good = guard.validate({"answer": "hello"})
-check("ai guard good", res_good.summary.get("errors") == 0)
-res_bad = guard.validate({"answer": ""})
-check("ai guard bad", res_bad.summary.get("errors") == 1)
+def test_ai_guard_good():
+    contract = Contract(schema={"answer": Field(type=str, min_length=1)})
+    guard = AIGuard(contract)
+    result = guard.validate({"answer": "hello"})
+    assert result.summary["errors"] == 0
 
-# ---------- Итоги ----------
-print(f"\n{'='*40}")
-print(f"Passed: {PASSED}, Failed: {FAILED}")
-if FAILED == 0:
-    print("🎉 All tests passed! Core is stable.")
-else:
-    print(f"⚠️  {FAILED} test(s) failed. Please review.")
+def test_ai_guard_bad():
+    contract = Contract(schema={"answer": Field(type=str, min_length=1)})
+    guard = AIGuard(contract)
+    result = guard.validate({"answer": ""})
+    assert result.summary["errors"] == 1

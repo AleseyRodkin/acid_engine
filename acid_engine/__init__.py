@@ -4,3 +4,4 @@
 from .core import Contract, Container, ContractViolation, QualityGate, QualityGateExceeded, Field, ErrorRecord, ValidationResult
 from .scope import global_scope, orchestrator
 from .ai import AIGuard
+from .langchain_plugin import AcidOutputGuard

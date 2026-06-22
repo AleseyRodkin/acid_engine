@@ -1,0 +1,29 @@
+rules:
+- age >= 18
+schema:
+  age:
+    choices: null
+    max: 120
+    max_length: null
+    min: 0
+    min_length: null
+    regex: null
+    type: int
+  email:
+    choices: null
+    max: null
+    max_length: null
+    min: null
+    min_length: null
+    regex: ^[^@]+@[^@]+\.[^@]+$
+    type: str
+  id:
+    choices: null
+    max: null
+    max_length: null
+    min: 1
+    min_length: null
+    regex: null
+    type: int
+unique:
+- id

@@ -10,4 +10,4 @@ setup(
     description='Contract-oriented data engine',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-)
+)   

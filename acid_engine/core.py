@@ -1,12 +1,10 @@
 # Copyright (c) 2025 Alexey Rodkin. All rights reserved.
 # Licensed under the Apache License, Version 2.0.
 
-import re
-import copy
+import re, copy, os
 from typing import Optional, List, Any, Callable, Union, Tuple
 
 class ContractViolation(Exception):
-    """Нарушение контракта с объяснением."""
     def __init__(self, message: str, contract_name: str = None,
                  expected: str = None, received: str = None, reason: str = None):
         super().__init__(message)
@@ -18,25 +16,21 @@ class ContractViolation(Exception):
     def explain(self) -> str:
         parts = []
         if self.contract_name:
-            parts.append(f"Field: {self.contract_name}")
+            parts.append(f"Contract: {self.contract_name}")
         if self.expected:
             parts.append(f"Expected: {self.expected}")
         if self.received:
             parts.append(f"Received: {self.received}")
         if self.reason:
             parts.append(f"Reason: {self.reason}")
-        if not parts:
-            return super().__str__()
-        return "\n".join(parts)
+        return "\n".join(parts) if parts else str(self)
 
 
 class QualityGateExceeded(Exception):
-    """Превышен порог ошибок качества."""
     pass
 
 
 class ErrorRecord:
-    """Запись об ошибке валидации."""
     def __init__(self, row, contract_name: str, violation: str, message: str,
                  expected: str = None, received: str = None, reason: str = None):
         self.row = row
@@ -48,21 +42,12 @@ class ErrorRecord:
         self.reason = reason
 
     def __repr__(self):
-        parts = [f"ErrorRecord(row={self.row!r}, contract={self.contract_name!r}"]
-        if self.expected:
-            parts.append(f"expected={self.expected!r}")
-        if self.received:
-            parts.append(f"received={self.received!r}")
-        if self.reason:
-            parts.append(f"reason={self.reason!r}")
-        parts.append(f"message={self.message!r})")
-        return ", ".join(parts).replace(", )", ")")
+        return (f"ErrorRecord(row={self.row!r}, contract={self.contract_name!r}, "
+                f"expected={self.expected!r}, received={self.received!r}, "
+                f"reason={self.reason!r}, message={self.message!r})")
 
 
 class Field:
-    """
-    Контракт отдельного значения.
-    """
     def __init__(self, type=None, validators=None, regex=None,
                  min=None, max=None, min_length=None, max_length=None,
                  choices=None):
@@ -76,97 +61,66 @@ class Field:
         self.choices = choices
 
     def validate(self, value):
-        """Проверяет значение и выбрасывает ContractViolation при ошибке."""
-        # Проверка типа
         if self.type is not None and not isinstance(value, self.type):
             raise ContractViolation(
                 f"Ожидался тип {self.type.__name__}, получен {type(value).__name__}",
-                contract_name="Field",
-                expected=f"type {self.type.__name__}",
-                received=repr(value),
-                reason="Type mismatch"
+                contract_name="Field", expected=str(self.type.__name__),
+                received=type(value).__name__, reason="Type mismatch"
             )
-
-        # Числовые ограничения
         if self.min is not None and value < self.min:
             raise ContractViolation(
                 f"Значение {value} меньше минимального {self.min}",
-                contract_name="Field",
-                expected=f"value >= {self.min}",
-                received=str(value),
-                reason="Below minimum"
+                contract_name="Field", expected=f">= {self.min}",
+                received=str(value), reason="Below minimum"
             )
         if self.max is not None and value > self.max:
             raise ContractViolation(
                 f"Значение {value} больше максимального {self.max}",
-                contract_name="Field",
-                expected=f"value <= {self.max}",
-                received=str(value),
-                reason="Above maximum"
+                contract_name="Field", expected=f"<= {self.max}",
+                received=str(value), reason="Above maximum"
             )
-
-        # Ограничения длины
         if self.min_length is not None and len(value) < self.min_length:
             raise ContractViolation(
                 f"Длина меньше {self.min_length}",
-                contract_name="Field",
-                expected=f"length >= {self.min_length}",
-                received=f"length {len(value)}",
-                reason="Too short"
+                contract_name="Field", expected=f"length >= {self.min_length}",
+                received=f"length {len(value)}", reason="Too short"
             )
         if self.max_length is not None and len(value) > self.max_length:
             raise ContractViolation(
                 f"Длина больше {self.max_length}",
-                contract_name="Field",
-                expected=f"length <= {self.max_length}",
-                received=f"length {len(value)}",
-                reason="Too long"
+                contract_name="Field", expected=f"length <= {self.max_length}",
+                received=f"length {len(value)}", reason="Too long"
             )
-
-        # Регулярное выражение
-        if self.regex is not None:
-            if not re.match(self.regex, str(value)):
-                raise ContractViolation(
-                    f"Значение не соответствует регулярному выражению {self.regex}",
-                    contract_name="Field",
-                    expected=f"matches pattern '{self.regex}'",
-                    received=repr(value),
-                    reason="Regex mismatch"
-                )
-
-        # Выбор из списка
+        if self.regex is not None and not re.match(self.regex, str(value)):
+            raise ContractViolation(
+                f"Значение не соответствует регулярному выражению {self.regex}",
+                contract_name="Field", expected=f"matches {self.regex}",
+                received=str(value), reason="Regex mismatch"
+            )
         if self.choices is not None and value not in self.choices:
             raise ContractViolation(
                 f"Значение должно быть одним из {self.choices}",
-                contract_name="Field",
-                expected=f"one of {self.choices}",
-                received=repr(value),
-                reason="Not in allowed choices"
+                contract_name="Field", expected=str(self.choices),
+                received=str(value), reason="Not in allowed choices"
             )
-
-        # Пользовательские валидаторы
         for idx, validator in enumerate(self.validators):
             try:
                 result = validator(value)
                 if result is False:
                     raise ContractViolation(
                         f"Валидатор #{idx} не пройден для {value!r}",
-                        contract_name="Field",
-                        expected="custom validation passed",
-                        received="custom validation failed",
-                        reason=f"Validator #{idx} returned False"
+                        contract_name="Field", expected="custom validation passed",
+                        received="custom validation failed", reason=f"Validator #{idx} returned False"
                     )
             except ContractViolation:
                 raise
             except Exception as e:
                 raise ContractViolation(
                     f"Ошибка в валидаторе #{idx}: {e}",
-                    contract_name="Field",
-                    reason=f"Validator #{idx} raised {type(e).__name__}: {e}"
+                    contract_name="Field", reason=f"Validator #{idx} raised {type(e).__name__}"
                 )
 
     def __call__(self, value):
-        """Позволяет использовать Field как вызываемый объект."""
         self.validate(value)
         return value
 
@@ -190,7 +144,6 @@ class Field:
             desc.append(f"validators: {len(self.validators)} custom")
         return ", ".join(desc)
 
-    # Встроенные пресеты
     @classmethod
     def Email(cls):
         return cls(type=str, regex=r"^[^@]+@[^@]+\.[^@]+$")
@@ -220,13 +173,75 @@ class Field:
         return cls(type=str, regex=r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$")
 
 
+class ValidationResult:
+    def __init__(self, valid_data: list, errors: list, summary: dict):
+        self.valid_data = valid_data
+        self.errors = errors
+        self.summary = summary
+
+    def explain(self) -> str:
+        lines = []
+        lines.append(f"Всего проверено: {self.summary.get('total', 0)}")
+        lines.append(f"Ошибок: {self.summary.get('errors', 0)}")
+        lines.append(f"Успешно: {self.summary.get('total', 0) - self.summary.get('errors', 0)}")
+        if self.summary.get('error_rate') is not None:
+            lines.append(f"Процент ошибок: {self.summary['error_rate']:.1%}")
+
+        if self.summary.get('top_violations'):
+            lines.append("\nТоп нарушений:")
+            for reason, count in self.summary['top_violations']:
+                lines.append(f"  {reason}: {count}")
+
+        if self.errors:
+            lines.append(f"\nПримеры ошибочных записей (первые 5):")
+            for err in self.errors[:5]:
+                lines.append(f"  Запись: {err.row}")
+                if err.reason:
+                    lines.append(f"    Причина: {err.reason}")
+                if err.expected:
+                    lines.append(f"    Ожидалось: {err.expected}")
+                if err.received:
+                    lines.append(f"    Получено: {err.received}")
+                lines.append("")
+
+        return "\n".join(lines)
+
+    def to_markdown(self, filepath: str):
+        """Сохраняет отчёт в Markdown-файл."""
+        md = []
+        md.append("# Отчёт о качестве данных\n")
+        md.append(f"**Всего проверено:** {self.summary.get('total', 0)}  \n")
+        md.append(f"**Ошибок:** {self.summary.get('errors', 0)}  \n")
+        md.append(f"**Успешно:** {self.summary.get('total', 0) - self.summary.get('errors', 0)}  \n")
+        if self.summary.get('error_rate') is not None:
+            md.append(f"**Процент ошибок:** {self.summary['error_rate']:.1%}  \n")
+
+        if self.summary.get('top_violations'):
+            md.append("\n## Топ нарушений\n")
+            for reason, count in self.summary['top_violations']:
+                md.append(f"- {reason}: {count}\n")
+
+        if self.errors:
+            md.append("\n## Примеры ошибочных записей\n")
+            for err in self.errors[:5]:
+                md.append(f"### Запись: `{err.row}`\n")
+                if err.reason:
+                    md.append(f"- **Причина:** {err.reason}\n")
+                if err.expected:
+                    md.append(f"- **Ожидалось:** {err.expected}\n")
+                if err.received:
+                    md.append(f"- **Получено:** {err.received}\n")
+                md.append("\n")
+
+        with open(filepath, 'w') as f:
+            f.writelines(md)
+
+
 class Contract:
-    """
-    Контракт на данные.
-    """
     def __init__(self, unique=False, ordered=False, frozen=False,
                  dtype=None, validators=None, max_error_rate=None,
-                 item_contract=None, schema=None):
+                 item_contract=None, schema=None,
+                 pipeline_meta=None):
         self.unique = unique
         self.ordered = ordered
         self.frozen = frozen
@@ -236,6 +251,11 @@ class Contract:
         self.is_map = isinstance(dtype, tuple) and len(dtype) == 2
         self.item_contract = item_contract
         self.schema = schema
+        self._rules = []
+        self.pipeline_meta = pipeline_meta or {}
+
+    def add_rule(self, rule):
+        self._rules.append(rule)
 
     def create_container(self):
         return Container(self)
@@ -254,17 +274,109 @@ class Contract:
             lines.append("schema:")
             for name, field in self.schema.items():
                 lines.append(f"  {name}: {field.describe()}")
+        if self._rules:
+            lines.append("rules:")
+            for r in self._rules:
+                lines.append(f"  {r}")
         return "\n".join(lines) if lines else "No constraints"
+
+    def validate(self, data):
+        # Если передан DataFrame, конвертируем в список словарей
+        try:
+            import pandas as pd
+            if isinstance(data, pd.DataFrame):
+                data = data.to_dict(orient='records')
+        except ImportError:
+            pass  # pandas не установлен – работаем как со списком
+
+        if not isinstance(data, list):
+            raise TypeError("data должен быть списком словарей или pandas DataFrame")
+
+        container = self.create_container()
+        gate = QualityGate(container, max_error_rate=1.0,
+                           mode="quarantine", collect_errors=True)
+        for row in data:
+            gate.add(row)
+        return ValidationResult(
+            valid_data=list(container),
+            errors=gate.error_records,
+            summary=gate.summary()
+        )
+
+    def to_yaml(self, filepath: str = None) -> str:
+        import yaml
+        yaml_data = {}
+        if self.schema:
+            yaml_data['schema'] = {}
+            for name, field in self.schema.items():
+                yaml_data['schema'][name] = {
+                    'type': field.type.__name__ if field.type else 'str',
+                    'min': field.min,
+                    'max': field.max,
+                    'min_length': field.min_length,
+                    'max_length': field.max_length,
+                    'regex': field.regex,
+                    'choices': field.choices
+                }
+        if self.unique:
+            yaml_data['unique'] = self.unique
+        if self._rules:
+            yaml_data['rules'] = [str(r) for r in self._rules]
+        if self.validators:
+            yaml_data['validators'] = [str(v) for v in self.validators]
+        yaml_str = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False)
+        if filepath:
+            with open(filepath, 'w') as f:
+                f.write(yaml_str)
+        return yaml_str
+
+    @classmethod
+    def from_yaml(cls, source: str):
+        import yaml
+        if source.endswith('.yaml') or source.endswith('.yml'):
+            with open(source, 'r') as f:
+                data = yaml.safe_load(f)
+        else:
+            data = yaml.safe_load(source)
+        schema = {}
+        if 'schema' in data:
+            for name, field_data in data['schema'].items():
+                if isinstance(field_data, dict):
+                    field_type = field_data.get('type', 'str')
+                    if field_type == 'int':
+                        field = Field(type=int)
+                    elif field_type == 'float':
+                        field = Field(type=float)
+                    else:
+                        field = Field(type=str)
+                    if 'min' in field_data and field_data['min'] is not None:
+                        field.min = field_data['min']
+                    if 'max' in field_data and field_data['max'] is not None:
+                        field.max = field_data['max']
+                    if 'min_length' in field_data:
+                        field.min_length = field_data['min_length']
+                    if 'max_length' in field_data:
+                        field.max_length = field_data['max_length']
+                    if 'regex' in field_data:
+                        field.regex = field_data['regex']
+                    if 'choices' in field_data:
+                        field.choices = field_data['choices']
+                    schema[name] = field
+        unique = data.get('unique', False)
+        rules = data.get('rules', [])
+        pipeline_meta = data.get('pipeline', {})
+        contract = cls(schema=schema, unique=unique, pipeline_meta=pipeline_meta)
+        for rule in rules:
+            contract.add_rule(rule)
+        return contract
 
     @classmethod
     def from_data(cls, data: list, sample_size: int = 100):
-        """Анализирует данные и предлагает контракт с эвристиками."""
         if not data:
             return cls(), {}
         profile = {}
         sample = data[:sample_size]
         keys = list(sample[0].keys())
-        # Пресеты для эвристик
         heuristics = [
             ("email", Field.Email()),
             ("url", Field.Url()),
@@ -278,7 +390,6 @@ class Contract:
             types = {type(v).__name__ for v in values}
             unique = len(values) == len(set(str(v) for v in values))
             nulls = sum(1 for v in values if v is None or v == '')
-            # Попробовать эвристики
             best_field = None
             best_score = 0
             for name, field in heuristics:
@@ -318,9 +429,46 @@ class Contract:
                     schema[key] = Field(type=str)
         return cls(schema=schema), profile
 
+    def generate_pipeline(self, output_path: str = None) -> str:
+        meta = self.pipeline_meta
+        input_desc = meta.get('input', 'input_data')
+        output_desc = meta.get('output', 'output_data')
+        steps = meta.get('processing', [])
+
+        lines = []
+        lines.append("# Auto-generated pipeline by AcidEngine")
+        lines.append("from acid_engine.scope import global_scope, orchestrator")
+        lines.append("from acid_engine.core import Contract, Field, QualityGate")
+        lines.append("")
+        lines.append("# Загрузка контракта (пример, замените на свой)")
+        lines.append("contract = Contract.from_yaml('users.contract.yaml')")
+        lines.append("")
+        lines.append("")
+        for step in steps:
+            lines.append(f"def {step}():")
+            lines.append("    pass")
+            lines.append("")
+        lines.append("")
+        lines.append("@orchestrator")
+        lines.append("def process():")
+        lines.append(f"    # Вход: {input_desc}")
+        lines.append(f"    # Выход: {output_desc}")
+        for step in steps:
+            lines.append(f"    {step}()")
+        lines.append("")
+        lines.append("")
+        lines.append("if __name__ == '__main__':")
+        lines.append("    with global_scope('generated_pipeline'):")
+        lines.append("        process()")
+
+        code = "\n".join(lines)
+        if output_path:
+            with open(output_path, 'w') as f:
+                f.write(code)
+        return code
+
 
 class Container:
-    """Хранилище данных, подчиняющееся контракту."""
     def __init__(self, contract: Contract):
         self.contract = contract
         self._data = []
@@ -343,6 +491,48 @@ class Container:
             item = validated
         elif self.contract.item_contract is not None:
             item = self.contract.item_contract(item)
+
+        if self.contract.schema and self.contract._rules:
+            for rule in self.contract._rules:
+                if isinstance(rule, str):
+                    try:
+                        from simpleeval import simple_eval
+                        result = simple_eval(rule, names=item)
+                        if not result:
+                            raise ContractViolation(
+                                f"Cross‑field правило не пройдено: '{rule}'",
+                                contract_name="CrossField",
+                                expected="True",
+                                received=str(result),
+                                reason="Cross‑field rule failed"
+                            )
+                    except ContractViolation:
+                        raise
+                    except Exception as e:
+                        raise ContractViolation(
+                            f"Ошибка в cross‑field правиле '{rule}': {e}",
+                            contract_name="CrossField",
+                            reason=f"Rule evaluation error: {e}"
+                        )
+                else:
+                    try:
+                        result = rule(item)
+                        if not result:
+                            raise ContractViolation(
+                                "Cross‑field правило не пройдено",
+                                contract_name="CrossField",
+                                expected="True",
+                                received="False",
+                                reason="User‑defined cross‑field rule failed"
+                            )
+                    except ContractViolation:
+                        raise
+                    except Exception as e:
+                        raise ContractViolation(
+                            f"Ошибка в cross‑field правиле: {e}",
+                            contract_name="CrossField",
+                            reason=f"Rule error: {e}"
+                        )
 
         if self.contract.is_map:
             if key is None:
@@ -395,10 +585,7 @@ class Container:
         return self._frozen
 
     def snapshot(self):
-        return {
-            'data': copy.deepcopy(self._data),
-            'frozen': self._frozen
-        }
+        return {'data': copy.deepcopy(self._data), 'frozen': self._frozen}
 
     def restore_snapshot(self, snap):
         self._data = copy.deepcopy(snap['data'])
@@ -428,15 +615,6 @@ class Container:
 
 
 class QualityGate:
-    """
-    Управление качеством данных с декларативной политикой.
-    Режимы:
-        "strict"      – полный откат при превышении порога ошибок.
-        "recovery"    – откат, но хорошие записи сохраняются в good_container.
-        "audit"       – откат, все записи сохраняются в archive_container.
-        "quarantine"  – без отката, плохие записи могут сохраняться отдельно.
-    collect_errors: создавать ли ErrorRecord для каждого нарушения.
-    """
     def __init__(self, container: Container, max_error_rate: float,
                  mode: str = "strict",
                  good_container: Optional[List] = None,
@@ -451,11 +629,9 @@ class QualityGate:
         self.error_container = error_container
         self.collect_errors = collect_errors
         self.error_records: List[ErrorRecord] = []
-
         self.snapshot = container.snapshot()
         self.errors = 0
         self.total = 0
-
         self._good_buffer = []
         self._all_buffer = []
 
@@ -519,7 +695,6 @@ class QualityGate:
                     f"{self.errors}/{self.total} ({self.errors/self.total:.1%}). "
                     f"Контейнер не откачен."
                 )
-
         return is_good
 
     @property

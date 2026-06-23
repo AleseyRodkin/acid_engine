@@ -1,325 +1,108 @@
-# AcidEngine — Data Control Layer
+# AcidEngine Roadmap
 
-**Контрактно-ориентированная платформа управления качеством данных.**
-Описывайте правила данных декларативно, и AcidEngine гарантирует их соблюдение на всех этапах: от загрузки CSV до генерации production-пайплайнов.
+## What is AcidEngine
 
----
+AcidEngine is a **contract-driven data control layer**. Instead of writing scattered if/else checks, you describe your data rules once in a Contract, and AcidEngine enforces them automatically — whether your data lives in CSV files, Pandas DataFrames, LLM outputs, or APIs.
 
-## Проблема
+**Key principles:**
+- **Contract is the single source of truth** — all data rules live in one place
+- **Enforcement, not validation** — data that violates the contract cannot enter your system
+- **Works with your existing stack** — Pandas, Pydantic, Pandera are not replaced, but complemented
+- **From validation to pipeline** — the same Contract can generate production-ready Python pipelines
 
-Правила данных (уникальность ID, формат email, диапазон возраста) дублируются между сервисами, размазываются по коду и со временем превращаются в хаос.
-
-Типичный ETL-скрипт постепенно обрастает десятками проверок:
-
-```python
-seen_ids = set()
-
-for row in data:
-    if not row["id"]:
-        continue
-
-    if row["id"] in seen_ids:
-        continue
-
-    if "@" not in row["email"]:
-        continue
-
-    # ...
-```
-
-Через несколько месяцев становится трудно понять:
-
-* Какие правила реально действуют
-* Где находятся бизнес-ограничения
-* Какие проверки уже реализованы
-* Какие данные считаются валидными
+**Open Core Model:** The core is and always will be free under Apache 2.0. Enterprise features (Registry, Audit Trail, SSO, monitoring) will be offered under a commercial license.
 
 ---
 
-# Before / After (реальный CSV-кейс)
+## Current Status: v1.0 (Stable)
 
-## Задача
+The core is production-ready. Every feature below is implemented, tested, and available on PyPI.
 
-Загрузить `users.csv` с полями:
+### Data Contracts
+Describe rules declaratively — types, ranges, formats, cross-field dependencies — and they are enforced at runtime.
 
-* `id` — уникальный, > 0
-* `email` — валидный email
-* `age` — диапазон 0–120
-* `phone` — формат `+7XXXXXXXXXX`
-* если email заканчивается на `@company.com`, возраст должен быть >= 18
+- [x] **Field Contracts** — per-value contracts: type, min/max, regex, choices, custom validators, 8 built-in presets (Email, Url, UUID, etc.)
+- [x] **Container Contracts** — collection-level guarantees: uniqueness, ordering, immutability
+- [x] **Cross‑Field Validation** — business rules linking fields (e.g., `age >= 18 if email.endswith('@company.com')`), safe evaluation without `eval()`
 
----
+### Quality Control
+Control what happens when data violates the contract — from silent filtering to full rollback.
 
-## Before (чистый Python)
+- [x] **QualityGate** — 4 modes: strict (rollback), recovery (rollback + save good records), audit (rollback + save all), quarantine (filter without rollback)
+- [x] **ErrorRecord** — structured error capture with expected/received/reason for every violation
+- [x] **Explain Engine** — human-readable reports with statistics, top violations, and sample errors, exportable to Markdown
 
-```python
-import csv
-import re
+### Integration and Interoperability
+AcidEngine doesn't replace your stack — it strengthens it.
 
-seen_ids = set()
-clean = []
+- [x] **Pandas Integration** — validate DataFrames directly via `contract.validate(df)`
+- [x] **CSV Loader** — load and validate CSV files with automatic contract generation
+- [x] **YAML Support** — import/export contracts as YAML files for version control and sharing
+- [x] **Smart Contract Generator** — analyze a data sample and suggest a contract automatically
 
-with open("users.csv") as f:
-    for row in csv.DictReader(f):
+### AI and LLM Guardrails
+Contracts can validate LLM outputs as easily as CSV data.
 
-        # id
-        try:
-            id_val = int(row["id"])
+- [x] **AI Guard** — validate LLM responses (JSON/dict) against a contract
+- [x] **LangChain Plugin** — drop-in guard for LangChain pipelines (`AcidOutputGuard`)
 
-            if id_val < 1:
-                continue
+### Pipeline Generation
+The same Contract that validates data can also generate the code structure for your data pipeline.
 
-            if id_val in seen_ids:
-                continue
+- [x] **Pipeline Generator** — generate Python pipeline skeletons with orchestrator and workers from a contract
 
-            seen_ids.add(id_val)
-
-        except Exception:
-            continue
-
-        # email
-        if "@" not in row["email"] or "." not in row["email"]:
-            continue
-
-        # age
-        try:
-            age = int(row["age"])
-
-            if age < 0 or age > 120:
-                continue
-
-        except Exception:
-            continue
-
-        # phone
-        if not re.match(r"^\+7\d{10}$", row.get("phone", "")):
-            continue
-
-        # business rule
-        if row["email"].endswith("@company.com") and age < 18:
-            continue
-
-        clean.append(row)
-```
+### Project Health
+- [x] **Test Suite** — 15 smoke tests covering all core components
+- [x] **CI via GitHub Actions** — automated testing on every push
+- [x] **PyPI Package** — `pip install acid-engine`
+- [x] **Documentation** — README (EN/RU), ARCHITECTURE.md, demo scripts
 
 ---
 
-## After (AcidEngine)
+## Next: v1.1 (Short-term, Open Core)
 
-```python
-from acid_engine import Contract, Field
+Smaller improvements that add immediate practical value.
 
-contract = Contract(
-    schema={
-        "id": Field(type=int, min=1),
-        "email": Field.Email(),
-        "age": Field(type=int, min=0, max=120),
-        "phone": Field(
-            type=str,
-            regex=r"^\+7\d{10}$"
-        )
-    },
-    unique=["id"]
-)
-
-contract.add_rule(
-    "age >= 18 if email.endswith('@company.com')"
-)
-
-result = contract.validate("users.csv")
-
-result.explain()
-```
+- [ ] **Polars Integration** — same interface as Pandas, for Polars users
+- [ ] **Enhanced Explain Engine** — violation history, per-field top violations
+- [ ] **JSON Schema export** — generate JSON Schema from a Contract
+- [ ] **Extended Field Presets** — Date, DateTime, Boolean out of the box
 
 ---
 
-### Результат
+## Planned: v1.5 (Medium-term, Open Core)
 
-| Метрика               | Обычный Python | AcidEngine    |
-| --------------------- | -------------- | ------------- |
-| Строк кода            | 30+            | ~6            |
-| Проверки типов        | Вручную        | Автоматически |
-| Проверки уникальности | Вручную        | Автоматически |
-| Бизнес-правила        | В коде цикла   | В контракте   |
-| Отчёт об ошибках      | Вручную        | Встроен       |
-| Читаемость            | Средняя        | Высокая       |
+Features that deepen the contract-driven approach and strengthen the developer experience.
 
-Контракт становится единственной точкой правды для правил данных.
+- [ ] **Full Pipeline Generation** — auto-generate code for standard operations (deduplicate, cast, normalize)
+- [ ] **Contract Diff** — compare two versions of a contract and see what changed
+- [ ] **Soft Contracts** — INFO / WARNING / ERROR severity levels for gradual adoption
+- [ ] **Contract Fingerprint** — hash for compatibility checks between systems
 
 ---
 
-# Ключевые возможности
+## Future: v2.0 (Long-term, Open Core)
 
-| Возможность                  | Описание                                            |
-| ---------------------------- | --------------------------------------------------- |
-| **Field Contracts**          | Типы, диапазоны, regex, choices, встроенные пресеты |
-| **Cross-Field Rules**        | Правила между полями (`start_date <= end_date`)     |
-| **Business Rules**           | Декларативные ограничения (`age >= 18 if ...`)      |
-| **QualityGate**              | strict / recovery / audit / quarantine              |
-| **Automatic Rollback**       | Откат при превышении порога ошибок                  |
-| **Explain Engine**           | Статистика, топ ошибок, примеры записей             |
-| **YAML Support**             | `Contract.from_yaml()` и `Contract.to_yaml()`       |
-| **Pipeline Generator**       | Генерация Python-пайплайнов из контракта            |
-| **Pandas Integration**       | Поддержка DataFrame                                 |
-| **CSV Loader**               | Загрузка и валидация CSV                            |
-| **Smart Contract Generator** | Автоматическое построение контракта по данным       |
-| **Global Scope**             | Структурирование ETL-пайплайнов                     |
-| **Quality Reports**          | Markdown-отчёты по результатам проверки             |
+Scalability and ecosystem.
+
+- [ ] **Rust Runtime** — high-performance core for heavy workloads
+- [ ] **Kafka / Spark Streaming Plugins** — validate data in real-time pipelines
+- [ ] **Marketplace of Contracts** — public registry for sharing and discovering contracts
 
 ---
 
-# YAML Contracts
+## Enterprise Features (Closed Source, Commercial License)
 
-Контракты можно описывать как конфигурацию:
+Features designed for large teams and regulated industries. Available under a commercial license.
 
-```yaml
-schema:
-  id:
-    type: int
-    min: 1
-
-  email:
-    type: email
-
-  age:
-    type: int
-    min: 0
-    max: 120
-
-unique:
-  - id
-
-rules:
-  - age >= 18 if email.endswith('@company.com')
-```
-
-Загрузка:
-
-```python
-contract = Contract.from_yaml(
-    "users.contract.yaml"
-)
-```
+- [ ] **Contract Registry** — centralized catalog with versioning, dependencies, and role-based access
+- [ ] **Audit Trail** — full history of validations, changes, and who made them
+- [ ] **SSO and RBAC** — enterprise authentication and role-based access control
+- [ ] **Advanced Monitoring** — Prometheus/Grafana dashboards for contract performance
+- [ ] **Drift Detection** — monitor how data quality changes over time
+- [ ] **Visual Contract Designer** — Web UI for building and managing contracts
+- [ ] **SaaS Platform** — managed cloud offering
 
 ---
 
-# Quick Start
-
-Установка:
-
-```bash
-pip install acid-engine
-```
-
-Пример:
-
-```python
-from acid_engine import Contract
-from acid_engine import Field
-
-contract = Contract(
-    schema={
-        "email": Field.Email(),
-        "age": Field(
-            type=int,
-            min=0,
-            max=120
-        )
-    }
-)
-
-result = contract.validate(data)
-
-result.explain()
-```
-
----
-
-# Пример отчёта
-
-```text
-Всего проверено: 1000
-
-Ошибок: 37
-
-Успешно: 963
-
-Процент ошибок: 3.7%
-
-Топ нарушений:
-
-Email invalid .............. 21
-Age out of range ........... 10
-Duplicate ID ............... 6
-```
-
----
-
-# Архитектурная философия
-
-AcidEngine строится вокруг простой идеи:
-
-> Контракт описывает поведение данных и тем самым определяет их структуру.
-
-Контракт является primary source of truth.
-
-Код становится реализацией контракта, а не местом хранения бизнес-логики.
-
-Это позволяет:
-
-* убрать дублирование проверок
-* сделать правила данных явными
-* повысить читаемость ETL-кода
-* упростить сопровождение проектов
-* стандартизировать обработку данных
-
----
-
-# Roadmap
-
-## v1.0
-
-* [x] Field Contracts
-* [x] Contract Engine
-* [x] Container Validation
-* [x] Cross-Field Rules
-* [x] Safe Rule Engine
-* [x] QualityGate
-* [x] Explain Engine
-* [x] YAML Support
-* [x] Pandas Integration
-* [x] CSV Loader
-* [x] Smart Contract Generator
-* [x] Pipeline Generator
-
-## v1.1
-
-* [ ] AI Guard
-* [ ] Contract Registry
-* [ ] Audit Trail
-* [ ] Polars Adapter
-
-## v2.0
-
-* [ ] Kafka Integration
-* [ ] Spark Integration
-* [ ] Contract Marketplace
-* [ ] Rust Performance Core
-
----
-
-# Status
-
-✅ Core v1.0 completed
-
-✅ Ready for pilot projects
-
-🔄 Active development
-
----
-
-# License
-
-Apache License 2.0
-
-Copyright © 2025 Alexey Rodkin
+AcidEngine is a living project. Priorities are driven by real user feedback. If you have a use case that's not covered here, open an issue on GitHub or write to the author.

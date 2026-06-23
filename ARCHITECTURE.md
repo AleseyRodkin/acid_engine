@@ -76,3 +76,29 @@
 4. При ошибках генерируется ContractViolation с ожидаемым и полученным значениями.
 5. QualityGate может откатить транзакцию.
 6. ValidationResult предоставляет отчёт.
+
+## Open Core Model
+
+AcidEngine использует модель Open Core. Ядро проекта всегда будет открытым и бесплатным под лицензией Apache 2.0.
+
+### Открытое ядро (Apache 2.0, всегда бесплатно)
+- Field, Contract, Container
+- QualityGate (все четыре режима)
+- Explain Engine (ValidationResult, explain, to_markdown)
+- YAML Support (from_yaml, to_yaml)
+- Pipeline Generator
+- AI Guard (AIGuard)
+- LangChain Plugin (AcidOutputGuard)
+- Pandas/CSV адаптеры
+- Smart Contract Generator (from_data)
+
+### Планируемые Enterprise-функции (закрытый код, коммерческая лицензия)
+- Contract Registry с версионированием и ролями
+- Audit Trail (полный журнал изменений и проверок)
+- SSO и ролевая модель (RBAC)
+- Расширенный мониторинг и алертинг
+- Drift Detection (обнаружение изменений в данных)
+- Визуальный конструктор контрактов (Web UI)
+- SaaS-платформа
+
+Точки расширения для Enterprise-модулей (хуки, event-система, MetadataStore) уже заложены в открытом ядре, что позволит подключать закрытые компоненты без изменения публичного API.

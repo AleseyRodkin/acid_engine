@@ -1,22 +1,7 @@
-# Python
-__pycache__/
-*.pyc
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Virtual env
-venv/
-.env
-
-# Generated artifacts
-generated_*.py
-report.html
-report.md
-validation_report.xlsx
-pipeline_graph.mermaid
-*.parquet
-
-# IDE
-.vscode/
-.idea/logs/
+logs/
+contract_schema.json
+module_output.csv
+test_contract.py
+test_module_integration.py
+demo_advanced.py
+demo_module_core.py

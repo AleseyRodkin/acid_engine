@@ -5,3 +5,4 @@ test_contract.py
 test_module_integration.py
 demo_advanced.py
 demo_module_core.py
+venv/

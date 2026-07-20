@@ -1,8 +1,22 @@
+# Python
 __pycache__/
 *.pyc
-*.pyo
-venv/
 .pytest_cache/
-*.egg-info/
-dist/
-build/
+.coverage
+htmlcov/
+
+# Virtual env
+venv/
+.env
+
+# Generated artifacts
+generated_*.py
+report.html
+report.md
+validation_report.xlsx
+pipeline_graph.mermaid
+*.parquet
+
+# IDE
+.vscode/
+.idea/

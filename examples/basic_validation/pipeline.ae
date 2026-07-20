@@ -1,0 +1,17 @@
+spec_version "1.0"
+
+project "Basic Validation"
+
+INPUT:
+    source orders
+
+OUTPUT:
+    source validated_orders
+
+IMPLEMENTATION:
+    stage validate:
+        input orders
+        output validated_orders
+        require:
+            order_id is integer
+            price > 0

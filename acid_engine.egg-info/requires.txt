@@ -1,0 +1,9 @@
+pandas
+pyyaml
+simpleeval
+lark-parser
+
+[dev]
+pytest
+build
+twine

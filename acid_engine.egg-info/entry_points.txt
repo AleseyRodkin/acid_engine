@@ -1,0 +1,2 @@
+[console_scripts]
+acid = acid_engine.cli.main:main

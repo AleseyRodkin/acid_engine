@@ -1,3 +1,8 @@
+[![PyPI](https://img.shields.io/pypi/v/acid-engine.svg)](https://pypi.org/project/acid-engine/)
+[![Tests](https://github.com/AleseyRodkin/acid_engine/actions/workflows/tests.yml/badge.svg)](https://github.com/AleseyRodkin/acid_engine/actions)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
+
 # AcidEngine Roadmap
 
 ## What is AcidEngine

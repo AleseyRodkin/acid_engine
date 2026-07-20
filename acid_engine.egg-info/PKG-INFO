@@ -1,0 +1,223 @@
+Metadata-Version: 2.4
+Name: acid-engine
+Version: 0.2.0
+Summary: Contract-Driven Data Control Layer
+Home-page: https://github.com/AleseyRodkin/acid_engine
+Author: Alexey Rodkin
+Author-email: aleksejrodkin5@gmail.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: pyyaml
+Requires-Dist: simpleeval
+Requires-Dist: lark-parser
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: build; extra == "dev"
+Requires-Dist: twine; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+cat << 'EOF' > README.md
+# AcidEngine — Contract-Driven Data Control Layer
+
+**Контрактно-ориентированная платформа для Data Engineering.**  
+Описывайте правила, структуру и жизненный цикл данных в декларативном стиле. AcidEngine автоматически обеспечивает их соблюдение, сгенерирует код, тесты и отчёты.
+
+---
+
+## Быстрый пример
+
+Создайте файл спецификации `orders.ae`:
+
+```text
+spec_version "1.0"
+
+project "Orders Validation"
+version "1.0"
+
+INPUT:
+    source orders
+    source customers
+
+OUTPUT:
+    source validated_orders
+
+IMPLEMENTATION:
+    stage validate:
+        input orders
+        output validated_orders
+        use contract
+        schema:
+            order_id is integer
+            price is float
+            quantity is integer
+        require:
+            price > 0
+            quantity between 1 and 100
+        join customers with orders by customer_email
+        enrich phone from customers.phone
+```
+
+Запустите валидацию через CLI или Python:
+
+```bash
+$ acid run orders.ae --input orders.csv
+Stage: validate
+PASS: 150, FAIL: 12, SKIPPED: 3
+```
+
+---
+
+## Ключевые возможности
+
+| Возможность | Описание |
+| :--- | :--- |
+| **Field Contracts** | Типы, диапазоны, regex, choices, 8 встроенных пресетов (Email, Url, UUID…) |
+| **Cross‑Field Rules** | Бизнес-правила, связывающие поля (`age >= 18 if ...`) |
+| **QualityGate** | 4 режима обработки: `strict`, `recovery`, `audit`, `quarantine` |
+| **Explain Engine** | Читаемый отчёт (Markdown, HTML) с топом ошибок и примерами |
+| **Pipeline Generator** | Автоматическая генерация Python-пайплайна прямо из контракта |
+| **AI Guard** | Валидация и фильтрация ответов LLM через контракт |
+| **LangChain Plugin** | Нативный компонент `AcidOutputGuard` для LangChain-пайплайнов |
+| **YAML Support** | Бесшовный импорт и экспорт контрактов |
+| **Derived Fields** | Объявление и расчет вычисляемых полей внутри контракта |
+| **Join & Enrich** | Описание связей и обогащения между источниками данных |
+| **Contract Testing** | Автоматическая генерация готовых `pytest`-тестов для данных |
+| **HTML Reports** | Визуальные профессиональные отчёты в один клик |
+
+---
+
+## Быстрый старт
+
+1. Установите пакет:
+   ```bash
+   pip install acid-engine
+   ```
+
+2. Запустите пайплайн:
+   ```bash
+   acid run my_pipeline.ae --input data.csv
+   ```
+
+---
+
+## Документация и ссылки
+* [Архитектура проекта](ARCHITECTURE.md)
+* [Дорожная карта (Roadmap)](ROADMAP.md)
+* [Демо-скрипты и примеры](./examples)
+
+---
+
+## Статус проекта
+* **✅ v1.0 (Стабилен):** Ядро полностью готово к пилотным внедрениям в production.
+* **🔄 В разработке:** Polars adapter, Contract Registry, Audit Trail.
+
+---
+
+## Автор и лицензия
+© 2025 Alexey Rodkin. Распространяется под лицензией **Apache 2.0**. Подробности в файле [LICENSE](LICENSE).
+EOF
+
+cat << 'EOF' > ROADMAP.md
+# AcidEngine Roadmap
+
+## v1.0 (Текущая версия) — Стабильное ядро
+- [x] **Field Contracts:** Типы, диапазоны, regex, пресеты.
+- [x] **Container Contracts:** Проверки на уникальность (unique), упорядоченность (ordered), неизменяемость (frozen).
+- [x] **Cross‑Field Validation:** Кросс-полевая валидация и условная логика.
+- [x] **QualityGate:** Режимы strict, recovery, audit, quarantine.
+- [x] **Explain Engine:** Генерация понятных отчетов в Markdown и HTML.
+- [x] **YAML Support:** Экспорт/импорт декларативных спецификаций.
+- [x] **Pipeline Generator:** Конвертация контрактов в исполняемый Python-код.
+- [x] **Pandas Integration & CSV Loader:** Базовый движок для работы с табличными данными.
+- [x] **AI Guard & LangChain Plugin:** Инструменты контроля качества для LLM-агентов.
+- [x] **Join & Enrich & Derived Fields:** Трансформация данных на уровне контракта.
+- [x] **Contract Testing:** Автогенерация тестовых сценариев для `pytest`.
+- [x] **AcidLogger:** Структурированное JSON-логирование для интеграции с SIEM/ELK.
+
+## v1.1 (Ближайшие планы) — Расширение экосистемы
+- [ ] **Polars Integration:** Поддержка высокопроизвого движка Polars для больших датасетов.
+- [ ] **JSON Schema / Pydantic export:** Генерация стандартных схем данных из `.ae`-файлов.
+- [ ] **Contract Diff:** Утилита для сравнения двух версий контрактов.
+- [ ] **Excel Export:** Выгрузка отчетов Explain Engine в формат `.xlsx`.
+
+## v1.5 (В проектировании) — Жизненный цикл контрактов
+- [ ] **Full Pipeline Generation:** Полная сборка сложных направленных графов (DAG) из контрактов.
+- [ ] **Contract Versioning:** Систематизация версий и обратная совместимость схем.
+- [ ] **Soft Contracts:** Уровни строгости правил (`INFO`, `WARNING`, `ERROR`).
+- [ ] **Contract Fingerprint:** Хеширование состояния контракта для контроля целостности данных.
+
+## v2.0 (Перспектива) — Enterprise & Стриминг
+- [ ] **Rust Runtime:** Перенос критического движка валидации на Rust для максимальной скорости.
+- [ ] **Kafka / Spark Streaming Plugins:** Валидация потоковых данных «на лету».
+- [ ] **Marketplace of Contracts:** Публичный и приватный хаб готовых контрактов (Data Presets).
+- [ ] **Enterprise Features:** Интеграция SSO, RBAC (ролевая модель) и сквозной аудит (Audit Trail).
+EOF
+
+cat << 'EOF' > ARCHITECTURE.md
+# AcidEngine — Architecture Overview
+
+## Базовый принцип
+
+**Контракт является единственным источником истины (Single Source of Truth).**  
+Все правила, ограничения, типы данных и связи хранятся исключительно в файле контракта (`.ae` / `.yaml`). Никакая другая сущность, компонент рантайма или сторонний сервис не должны содержать собственную копию правил. Изменения в контракте автоматически каскадируются на код, тесты и аналитику.
+
+---
+
+## Основные компоненты
+
+### 1. Парсер (Lark)
+Отвечает за чтение текстовых файлов спецификации `.ae` и построение абстрактного синтаксического дерева (AST). 
+Грамматика описывает декларативные блоки:
+* `INPUT:` / `OUTPUT:` / `IMPLEMENTATION:` — макроструктура пайплайна.
+* `stage`, `input`, `output`, `use`, `schema`, `require` — контекст исполнения и логические блоки.
+* `join`, `enrich`, `derive` — правила трансформации.
+* Набор операторов валидации: `is`, `>`, `>=`, `<`, `<=`, `!=`, `between`.
+
+### 2. Рантайм (StageRunner)
+Оркестратор жизненного цикла данных на конкретном этапе пайплайна. Выполняет следующие шаги:
+1. Загружает сырые данные из источников.
+2. Применяет трансформации (`join` / `enrich` / `derive`).
+3. Конструирует объект `Contract` на основе AST.
+4. Пропускает данные через движок валидации (`Field Validation` & `QualityGate`).
+5. Агрегирует метрики для формирования финального отчета.
+
+### 3. Генераторы (Группа расширений)
+* **HTMLReporter:** Отвечает за компиляцию результатов валидации в интерактивные HTML/Markdown бизнес-отчеты.
+* **ContractTestGenerator:** Анализирует ограничения контракта и автоматически создаёт тестовые люксы (свиты) для `pytest`, снижая рутину написания тестов.
+* **AcidLogger:** Обеспечивает стандартизированный вывод логов в формате JSON.
+
+---
+
+## Поток данных (Data Flow)
+
+```text
+[ .ae contract file ] 
+        │
+        ▼
+   Parser (Lark) ──► Builds AST
+        │
+        ▼
+   StageRunner   ──► 1. Join & Enrich Data
+        │            2. Compute Derived Fields
+        │            3. Validate (Field / QualityGate)
+        ▼
+[ Executive Output ] ──► (Validated Data, Error Tables)
+        │
+        ├──► HTMLReporter        ──► [ Interactive HTML/MD Reports ]
+        └──► ContractTestGen     ──► [ Automated pytest Files ]
+```

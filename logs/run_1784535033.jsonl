@@ -1,0 +1,7 @@
+{"event": "run_start", "contract": "test_new_rules.ae", "input": "orders.csv", "timestamp": 1784535033.25295}
+{"event": "stage_start", "stage": "validate", "timestamp": 1784535033.289658}
+{"event": "row_fail", "errors": "[ErrorRecord(row={'order_id': 2, 'price': -5.0, 'quantity': 10}, contract='CrossField', expected='True', received='False', reason='Cross\u2011field rule failed', message=\"Cross\u2011field \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043d\u0435 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u043e: 'price > 0.0'\")]", "row": {"order_id": 2, "price": -5.0, "quantity": 10}, "timestamp": 1784535033.5415995}
+{"event": "row_fail", "errors": "[ErrorRecord(row={'order_id': 3, 'price': 20.0, 'quantity': 200}, contract='CrossField', expected='True', received='False', reason='Cross\u2011field rule failed', message=\"Cross\u2011field \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043d\u0435 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u043e: 'quantity >= 1 and quantity <= 100'\")]", "row": {"order_id": 3, "price": 20.0, "quantity": 200}, "timestamp": 1784535033.5418406}
+{"event": "row_fail", "reason": "cast_failed", "row": {"order_id": "4", "price": "abc", "quantity": "7"}, "timestamp": 1784535033.5419319}
+{"event": "stage_end", "report": {"pass": 1, "fail": 3, "skipped": 0}, "timestamp": 1784535033.5419736}
+{"event": "run_end", "timestamp": 1784535033.542061}

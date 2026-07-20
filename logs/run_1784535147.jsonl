@@ -1,0 +1,4 @@
+{"event": "run_start", "contract": "test_join_enrich.ae", "input": "orders.csv", "timestamp": 1784535147.1146455}
+{"event": "stage_start", "stage": "validate", "timestamp": 1784535147.1573575}
+{"event": "stage_end", "report": {"pass": 1, "fail": 3, "skipped": 0}, "timestamp": 1784535147.4136066}
+{"event": "run_end", "timestamp": 1784535147.413744}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AcidEngine Report – Test Derived v1.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 30px; }
+        h1 { color: #1a1a2e; margin-bottom: 8px; }
+        h2 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-top: 32px; }
+        .version { color: #666; font-size: 14px; }
+        .stats { display: flex; gap: 20px; margin-top: 16px; }
+        .stat { flex: 1; padding: 20px; border-radius: 10px; text-align: center; font-size: 28px; font-weight: bold; color: white; }
+        .stat span { display: block; font-size: 14px; font-weight: normal; margin-top: 6px; opacity: 0.9; }
+        .pass { background: #2ecc71; }
+        .fail { background: #e74c3c; }
+        .skipped { background: #f39c12; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; cursor: pointer; }
+        th:hover { background: #e9ecef; }
+        .error-card { background: #fff5f5; border-left: 4px solid #e74c3c; padding: 12px; margin: 12px 0; border-radius: 6px; }
+        .error-card div { margin: 4px 0; }
+        .error-reason { color: #c0392b; }
+        .error-expected { color: #27ae60; }
+        .error-received { color: #e67e22; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AcidEngine Execution Report</h1>
+        <div class="version">Project: Test Derived v1.0</div>
+        
+        <div class="summary">
+            <h2>Overall Statistics</h2>
+            <div class="stats">
+                <div class="stat pass">1<span>PASS</span></div>
+                <div class="stat fail">3<span>FAIL</span></div>
+                <div class="stat skipped">0<span>SKIPPED</span></div>
+            </div>
+            <div class="chart-container" style="width: 300px; margin: 20px auto;">
+                <canvas id="summaryChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="violations">
+            <h2>Top Violations</h2>
+            <table id="violationsTable">
+                <thead><tr><th>Violation</th><th>Count</th></tr></thead>
+                <tbody><tr><td>Cross‑field правило не пройдено: 'price > 0.0'</td><td>1</td></tr><tr><td>Cross‑field правило не пройдено: 'quantity >= 1 and quantity <= 100'</td><td>1</td></tr><tr><td>Cast failed</td><td>1</td></tr></tbody>
+            </table>
+            <div class="chart-container" style="width: 400px; margin: 20px auto;">
+                <canvas id="violationsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="errors">
+            <h2>Error Examples</h2>
+            
+            <div class="error-card">
+                <div class="error-row"><strong>Row:</strong> {'order_id': 2, 'price': -5.0, 'quantity': 10, 'total': -50.0}</div>
+                <div class="error-reason"><strong>Reason:</strong> Cross‑field rule failed</div>
+                <div class="error-expected"><strong>Expected:</strong> True</div>
+                <div class="error-received"><strong>Received:</strong> False</div>
+            </div>
+            
+            <div class="error-card">
+                <div class="error-row"><strong>Row:</strong> {'order_id': 3, 'price': 20.0, 'quantity': 200, 'total': 4000.0}</div>
+                <div class="error-reason"><strong>Reason:</strong> Cross‑field rule failed</div>
+                <div class="error-expected"><strong>Expected:</strong> True</div>
+                <div class="error-received"><strong>Received:</strong> False</div>
+            </div>
+            
+            <div class="error-card">
+                <div class="error-row"><strong>Row:</strong> {'order_id': '4', 'price': 'abc', 'quantity': '7', 'total': 0}</div>
+                <div class="error-reason"><strong>Reason:</strong> Type mismatch</div>
+                <div class="error-expected"><strong>Expected:</strong> N/A</div>
+                <div class="error-received"><strong>Received:</strong> N/A</div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+            <script>
+            var ctx1 = document.getElementById('summaryChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['PASS', 'FAIL', 'SKIPPED'],
+                    datasets: [{
+                        data: [1, 3, 0],
+                        backgroundColor: ['#2ecc71', '#e74c3c', '#f39c12']
+                    }]
+                }
+            });
+            var ctx2 = document.getElementById('violationsChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Cross‑field правило не пройден...', 'Cross‑field правило не пройден...', 'Cast failed'],
+                    datasets: [{
+                        label: 'Violations',
+                        data: [1, 1, 1],
+                        backgroundColor: '#e74c3c'
+                    }]
+                }
+            });
+            </script>
+            
+</body>
+</html>

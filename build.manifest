@@ -1,0 +1,23 @@
+version: "1.1.0"
+
+modules:
+  field:
+    file: "acid_engine/field.py"
+    produces: "field_contracts"
+  contract:
+    file: "acid_engine/contract.py"
+    consumes: "field_contracts"
+    produces: "data_contracts"
+  quality_gate:
+    file: "acid_engine/quality_gate.py"
+    consumes: "data_contracts"
+    produces: "quality_control"
+  explain:
+    file: "acid_engine/explain.py"
+    consumes: "quality_control"
+    produces: "explain_reports"
+  # ... остальные старые модули ...
+  validate_orders:
+    runner: module_core
+    path: "acid_engine/modules/validate_orders"
+    produces: "validated_orders"

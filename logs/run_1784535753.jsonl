@@ -1,0 +1,8 @@
+{"event": "run_start", "contract": "test_derived.ae", "input": "orders.csv", "timestamp": 1784535753.3265393}
+{"event": "stage_start", "stage": "validate", "timestamp": 1784535753.369457}
+{"event": "row_fail", "errors": "[ErrorRecord(row={'order_id': 1, 'price': 10.0, 'quantity': 5}, contract='Container', expected=\"field 'total'\", received='None', reason='Missing field', message=\"\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043f\u043e\u043b\u0435 'total'\")]", "row": {"order_id": 1, "price": 10.0, "quantity": 5}, "timestamp": 1784535753.6350372}
+{"event": "row_fail", "errors": "[ErrorRecord(row={'order_id': 2, 'price': -5.0, 'quantity': 10}, contract='Container', expected=\"field 'total'\", received='None', reason='Missing field', message=\"\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043f\u043e\u043b\u0435 'total'\")]", "row": {"order_id": 2, "price": -5.0, "quantity": 10}, "timestamp": 1784535753.635192}
+{"event": "row_fail", "errors": "[ErrorRecord(row={'order_id': 3, 'price': 20.0, 'quantity': 200}, contract='Container', expected=\"field 'total'\", received='None', reason='Missing field', message=\"\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043f\u043e\u043b\u0435 'total'\")]", "row": {"order_id": 3, "price": 20.0, "quantity": 200}, "timestamp": 1784535753.6353195}
+{"event": "row_fail", "reason": "cast_failed", "row": {"order_id": "4", "price": "abc", "quantity": "7"}, "timestamp": 1784535753.6353714}
+{"event": "stage_end", "report": {"pass": 0, "fail": 4, "skipped": 0}, "timestamp": 1784535753.6354089}
+{"event": "run_end", "timestamp": 1784535753.635482}

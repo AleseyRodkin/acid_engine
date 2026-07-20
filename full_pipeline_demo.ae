@@ -1,0 +1,30 @@
+spec_version "1.0"
+
+project "Full Pipeline Demo"
+version "1.0"
+
+INPUT:
+    source orders
+    source customers
+
+OUTPUT:
+    source validated_orders
+
+IMPLEMENTATION:
+    stage validate:
+        input orders
+        output validated_orders
+        use contract
+        schema:
+            order_id is integer
+            price is float
+            quantity is integer
+        require:
+            price > 0
+            quantity between 1 and 100
+        filter: price > 0
+        deduplicate: order_id
+        join customers with orders by customer_email
+        cast: order_id integer, price float
+        normalize: price
+        enrich: phone, segment

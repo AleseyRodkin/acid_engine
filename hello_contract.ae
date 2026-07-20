@@ -1,0 +1,22 @@
+spec_version "1.0"
+
+project "Orders Pipeline"
+version "1.0"
+
+INPUT:
+    source orders
+
+OUTPUT:
+    source validated_orders
+
+IMPLEMENTATION:
+
+    stage validate_orders:
+
+        input orders
+        output validated_orders
+
+        require:
+            order_id is integer
+            price > 0
+            quantity between 1 and 100

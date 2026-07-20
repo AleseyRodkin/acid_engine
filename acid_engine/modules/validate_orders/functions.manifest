@@ -1,0 +1,10 @@
+functions:
+  - name: filter_price
+    file: functions/filter_price.py
+    depends_on: []
+  - name: cast_types
+    file: functions/cast_types.py
+    depends_on: [filter_price]
+  - name: dedup_orders
+    file: functions/dedup_orders.py
+    depends_on: [cast_types]

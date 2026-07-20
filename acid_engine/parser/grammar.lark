@@ -1,0 +1,60 @@
+start: spec_version project_section input_section output_section implementation_section
+
+spec_version: "spec_version" ESCAPED_STRING
+
+project_section: "project" ESCAPED_STRING "version" ESCAPED_STRING
+
+input_section: "INPUT:" source*
+output_section: "OUTPUT:" source*
+
+source: "source" CNAME
+
+implementation_section: "IMPLEMENTATION:" stage*
+
+stage: "stage" CNAME ":" input_block output_block (use_block | schema_block | require_block | join_block | filter_block | deduplicate_block | cast_block | normalize_block | enrich_block)*
+
+input_block: "input" CNAME
+output_block: "output" CNAME
+use_block: USE CNAME
+schema_block: SCHEMA ":" field_rule*
+require_block: REQUIRE ":" rule*
+join_block: JOIN CNAME WITH CNAME BY CNAME
+filter_block: FILTER ":" filter_condition
+deduplicate_block: DEDUPLICATE ":" deduplicate_rule
+cast_block: CAST ":" cast_rule ("," cast_rule)*
+normalize_block: NORMALIZE ":" normalize_rule ("," normalize_rule)*
+enrich_block: ENRICH ":" enrich_rule ("," enrich_rule)*
+
+?field_rule: is_integer | is_float | is_string
+?rule: is_integer | is_float | is_string | compare_rule | between_rule
+filter_condition: CNAME COMPARE_OP NUMBER | CNAME "between" NUMBER "and" NUMBER | CNAME "==" ESCAPED_STRING | CNAME "!=" ESCAPED_STRING
+deduplicate_rule: CNAME
+cast_rule: CNAME CNAME
+normalize_rule: CNAME
+enrich_rule: CNAME
+
+is_integer: CNAME "is" "integer"
+is_float: CNAME "is" "float"
+is_string: CNAME "is" "string"
+compare_rule: CNAME COMPARE_OP NUMBER
+between_rule: CNAME "between" NUMBER "and" NUMBER
+
+COMPARE_OP: ">=" | "<=" | "!=" | ">" | "<"
+
+USE: "use"
+SCHEMA: "schema"
+REQUIRE: "require"
+JOIN: "join"
+WITH: "with"
+BY: "by"
+FILTER: "filter"
+DEDUPLICATE: "deduplicate"
+CAST: "cast"
+NORMALIZE: "normalize"
+ENRICH: "enrich"
+
+%import common.CNAME
+%import common.NUMBER
+%import common.ESCAPED_STRING
+%import common.WS
+%ignore WS

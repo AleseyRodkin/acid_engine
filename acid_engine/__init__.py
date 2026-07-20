@@ -5,3 +5,4 @@ from .core import Contract, Container, ContractViolation, QualityGate, QualityGa
 from .scope import global_scope, orchestrator
 from .ai import AIGuard
 from .langchain_plugin import AcidOutputGuard
+from .adapters.polars import validate_polars

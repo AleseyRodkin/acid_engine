@@ -1,0 +1,2 @@
+{"event": "run_start", "contract": "test_derived.ae", "input": "orders.csv", "timestamp": 1784535692.452479}
+{"event": "stage_start", "stage": "validate", "timestamp": 1784535692.5045285}

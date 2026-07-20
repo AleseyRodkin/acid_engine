@@ -1,0 +1,4 @@
+{"event": "run_start", "contract": "test_derived.ae", "input": "orders.csv", "timestamp": 1784539918.3835723}
+{"event": "stage_start", "stage": "validate", "timestamp": 1784539918.4217293}
+{"event": "stage_end", "report": {"pass": 1, "fail": 3, "skipped": 0}, "timestamp": 1784539918.6721733}
+{"event": "run_end", "timestamp": 1784539918.7544801}

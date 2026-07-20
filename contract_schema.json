@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Validation Contract",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "email": {
+      "type": "string",
+      "pattern": "^[^@]+@[^@]+\\.[^@]+$"
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "processing",
+        "shipped",
+        "cancelled"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "email",
+    "age",
+    "status"
+  ],
+  "additionalProperties": false,
+  "x-acid-unique": [
+    "id"
+  ],
+  "x-acid-rules": [
+    "age >= 18 if email.endswith('@company.com')"
+  ]
+}

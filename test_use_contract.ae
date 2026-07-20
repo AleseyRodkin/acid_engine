@@ -1,0 +1,24 @@
+spec_version "1.0"
+
+project "Test New Rules"
+version "1.0"
+
+INPUT:
+    source orders
+
+OUTPUT:
+    source validated_orders
+
+IMPLEMENTATION:
+    stage validate:
+        input orders
+        output validated_orders
+        use contract
+        schema:
+            order_id is integer
+            price is float
+            quantity is integer
+        require:
+            price > 0
+            quantity between 1 and 100
+            order_id != 4

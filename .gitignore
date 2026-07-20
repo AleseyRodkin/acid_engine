@@ -19,4 +19,4 @@ pipeline_graph.mermaid
 
 # IDE
 .vscode/
-.idea/
+.idea/logs/
